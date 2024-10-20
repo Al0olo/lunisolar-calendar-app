@@ -4,68 +4,29 @@ import moment from 'moment';
 import Papa from 'papaparse';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
-// Set up the localizer for react-big-calendar
 const localizer = momentLocalizer(moment);
 
-const LunarCalendar = () => {
+const LunisolarHijriCalendar = () => {
   const [events, setEvents] = useState([]);
   const [startDate, setStartDate] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [debugInfo, setDebugInfo] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        setDebugInfo('Fetching CSV file...');
-        
-        // Fetch the CSV file from the public folder
         const response = await fetch('/moon-phases-601-to-2100-UT.csv');
         const csvText = await response.text();
         
-        setDebugInfo('Parsing CSV data...');
         Papa.parse(csvText, {
           header: true,
           complete: (results) => {
-            setDebugInfo(`Parsed ${results.data.length} rows from CSV`);
-            
-            if (results.data.length === 0) {
-              throw new Error('No data found in CSV file');
+            const lunisolarEvents = processLunisolarData(results.data);
+            setEvents(lunisolarEvents);
+            if (lunisolarEvents.length > 0) {
+              setStartDate(lunisolarEvents[0].start);
             }
-
-            setDebugInfo('Formatting events...');
-            const formattedEvents = results.data.map((row, index) => {
-              // Log each row for debugging
-              console.log(`Row ${index}:`, row);
-              
-              // Parse the date using moment.js
-              const eventDate = moment(row.datetime, 'YYYY-MM-DD HH:mm:ss');
-              
-              if (!eventDate.isValid()) {
-                console.warn(`Invalid date at row ${index}: ${row.datetime}`);
-                return null;
-              }
-              
-              return {
-                title: row.phase,
-                start: eventDate.toDate(),
-                end: eventDate.toDate(),
-                allDay: true,
-                friendlyDate: row.friendlydate
-              };
-            }).filter(event => event !== null);
-
-            setDebugInfo(`Formatted ${formattedEvents.length} valid events`);
-            
-            if (formattedEvents.length === 0) {
-              throw new Error('No valid events found after parsing');
-            }
-
-            setEvents(formattedEvents);
-            setDebugInfo('Events set. Setting start date...');
-            setStartDate(formattedEvents[0].start);
-            setDebugInfo('Start date set.');
             setIsLoading(false);
           },
           error: (error) => {
@@ -84,29 +45,85 @@ const LunarCalendar = () => {
     fetchData();
   }, []);
 
+  const processLunisolarData = (data) => {
+    let hijriYear = 1;
+    let hijriMonth = 1;
+    let hijriDay = 1;
+    let isOddMonth = true; // To alternate between 29 and 30 day months
+    const HIJRI_EPOCH = 622; // Gregorian year when Hijri calendar starts
+    const SOLAR_YEAR = 365.2422; // Average length of a solar year
+    const LUNAR_YEAR = 354.36707; // Average length of a lunar year
+    const events = [];
+    let lastFullMoon = null;
+    let accumulatedDrift = 0;
+
+    data.forEach((row, index) => {
+      const gregorianDate = moment(row.datetime, 'YYYY-MM-DD HH:mm:ss');
+      
+      if (row.phase === 'Full Moon') {
+        // Calculate Hijri date
+        if (lastFullMoon) {
+          const daysSinceLastFullMoon = gregorianDate.diff(lastFullMoon, 'days');
+          hijriDay += daysSinceLastFullMoon;
+          
+          while (hijriDay > (isOddMonth ? 30 : 29)) {
+            hijriDay -= isOddMonth ? 30 : 29;
+            hijriMonth++;
+            isOddMonth = !isOddMonth;
+
+            if (hijriMonth > 12) {
+              hijriMonth = 1;
+              hijriYear++;
+
+              // Calculate drift and add 13th month if necessary
+              accumulatedDrift += (SOLAR_YEAR - LUNAR_YEAR);
+              if (accumulatedDrift >= LUNAR_YEAR) {
+                hijriMonth++;
+                accumulatedDrift -= LUNAR_YEAR;
+              }
+            }
+          }
+        }
+        
+        lastFullMoon = gregorianDate;
+
+        // More accurate Hijri year calculation
+        const gregorianYear = gregorianDate.year();
+        if (gregorianYear >= HIJRI_EPOCH) {
+          const yearsSinceEpoch = gregorianYear - HIJRI_EPOCH;
+          hijriYear = Math.floor(yearsSinceEpoch * (SOLAR_YEAR / LUNAR_YEAR)) + 1;
+        }
+
+        // Create event
+        events.push({
+          title: `Full Moon - Hijri: ${hijriYear}-${hijriMonth}-${hijriDay}`,
+          start: gregorianDate.toDate(),
+          end: gregorianDate.toDate(),
+          allDay: true,
+          hijriDate: `${hijriYear}-${hijriMonth}-${hijriDay}`,
+          gregorianDate: gregorianDate.format('YYYY-MM-DD'),
+        });
+      }
+    });
+
+    return events;
+  };
+
   const EventComponent = ({ event }) => (
     <div>
       <strong>{event.title}</strong>
       <br />
-      {event.friendlyDate}
+      Gregorian: {event.gregorianDate}
     </div>
   );
 
-  if (isLoading) {
-    return <div>Loading... Debug info: {debugInfo}</div>;
-  }
-
-  if (error) {
-    return <div>Error: {error}<br />Debug info: {debugInfo}</div>;
-  }
-
-  if (events.length === 0) {
-    return <div>No events found. Please check your CSV file.<br />Debug info: {debugInfo}</div>;
-  }
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+  if (events.length === 0) return <div>No events found. Please check your CSV file.</div>;
 
   return (
     <div className="h-screen p-4">
-      <h1 className="text-2xl font-bold mb-4">Lunar Phase Calendar</h1>
+      <h1 className="text-2xl font-bold mb-4">Lunisolar Hijri Calendar</h1>
       <Calendar
         localizer={localizer}
         events={events}
@@ -119,9 +136,8 @@ const LunarCalendar = () => {
         date={startDate}
         onNavigate={(date) => setStartDate(date)}
       />
-      <div className="mt-4 text-sm text-gray-600">Debug info: {debugInfo}</div>
     </div>
   );
 };
 
-export default LunarCalendar;
+export default LunisolarHijriCalendar;
