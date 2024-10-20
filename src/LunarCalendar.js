@@ -12,6 +12,13 @@ const LunisolarHijriCalendar = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const phaseColors = {
+    'New Moon': 'rgb(0 231 255)',
+    'First Quarter': '#66CCFF',
+    'Full Moon': '#FFFF00',
+    'Last Quarter': '#FF9933'
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -49,10 +56,10 @@ const LunisolarHijriCalendar = () => {
     let hijriYear = 1;
     let hijriMonth = 1;
     let hijriDay = 1;
-    let isOddMonth = true; // To alternate between 29 and 30 day months
-    const HIJRI_EPOCH = 622; // Gregorian year when Hijri calendar starts
-    const SOLAR_YEAR = 365.2422; // Average length of a solar year
-    const LUNAR_YEAR = 354.36707; // Average length of a lunar year
+    let isOddMonth = true;
+    const HIJRI_EPOCH = 622;
+    const SOLAR_YEAR = 365.2422;
+    const LUNAR_YEAR = 354.36707;
     const events = [];
     let lastFullMoon = null;
     let accumulatedDrift = 0;
@@ -60,58 +67,64 @@ const LunisolarHijriCalendar = () => {
     data.forEach((row, index) => {
       const gregorianDate = moment(row.datetime, 'YYYY-MM-DD HH:mm:ss');
       
-      if (row.phase === 'Full Moon') {
-        // Calculate Hijri date
-        if (lastFullMoon) {
-          const daysSinceLastFullMoon = gregorianDate.diff(lastFullMoon, 'days');
-          hijriDay += daysSinceLastFullMoon;
-          
-          while (hijriDay > (isOddMonth ? 30 : 29)) {
-            hijriDay -= isOddMonth ? 30 : 29;
-            hijriMonth++;
-            isOddMonth = !isOddMonth;
+      // Calculate Hijri date for all phases
+      if (lastFullMoon) {
+        const daysSinceLastFullMoon = gregorianDate.diff(lastFullMoon, 'days');
+        hijriDay += daysSinceLastFullMoon;
+        
+        while (hijriDay > (isOddMonth ? 30 : 29)) {
+          hijriDay -= isOddMonth ? 30 : 29;
+          hijriMonth++;
+          isOddMonth = !isOddMonth;
 
-            if (hijriMonth > 12) {
-              hijriMonth = 1;
-              hijriYear++;
+          if (hijriMonth > 12) {
+            hijriMonth = 1;
+            hijriYear++;
 
-              // Calculate drift and add 13th month if necessary
-              accumulatedDrift += (SOLAR_YEAR - LUNAR_YEAR);
-              if (accumulatedDrift >= LUNAR_YEAR) {
-                hijriMonth++;
-                accumulatedDrift -= LUNAR_YEAR;
-              }
+            accumulatedDrift += (SOLAR_YEAR - LUNAR_YEAR);
+            if (accumulatedDrift >= LUNAR_YEAR) {
+              hijriMonth++;
+              accumulatedDrift -= LUNAR_YEAR;
             }
           }
         }
-        
+      }
+      
+      if (row.phase === 'Full Moon') {
         lastFullMoon = gregorianDate;
 
-        // More accurate Hijri year calculation
         const gregorianYear = gregorianDate.year();
         if (gregorianYear >= HIJRI_EPOCH) {
           const yearsSinceEpoch = gregorianYear - HIJRI_EPOCH;
           hijriYear = Math.floor(yearsSinceEpoch * (SOLAR_YEAR / LUNAR_YEAR)) + 1;
         }
-
-        // Create event
-        events.push({
-          title: `Full Moon - Hijri: ${hijriYear}-${hijriMonth}-${hijriDay}`,
-          start: gregorianDate.toDate(),
-          end: gregorianDate.toDate(),
-          allDay: true,
-          hijriDate: `${hijriYear}-${hijriMonth}-${hijriDay}`,
-          gregorianDate: gregorianDate.format('YYYY-MM-DD'),
-        });
       }
+
+      // Create event for all phases
+      events.push({
+        title: `${row.phase} - Hijri: ${hijriYear}-${hijriMonth}-${hijriDay}`,
+        start: gregorianDate.toDate(),
+        end: gregorianDate.clone().add(1, 'day').toDate(),
+        allDay: true,
+        hijriDate: `${hijriYear}-${hijriMonth}-${hijriDay}`,
+        gregorianDate: gregorianDate.format('YYYY-MM-DD'),
+        phase: row.phase
+      });
     });
 
     return events;
   };
 
   const EventComponent = ({ event }) => (
-    <div>
-      <strong>{event.title}</strong>
+    <div style={{ 
+      backgroundColor: phaseColors[event.phase] || 'gray',
+      color: event.phase === 'Full Moon' || event.phase === 'New Moon' ? 'black' : 'white',
+      padding: '2px',
+      borderRadius: '4px'
+    }}>
+      <strong>{event.phase}</strong>
+      <br />
+      Hijri: {event.hijriDate}
       <br />
       Gregorian: {event.gregorianDate}
     </div>

@@ -1,10 +1,10 @@
 import React from 'react';
-import LunarCalendar from './LunarCalendar';
+import LunisolarHijriCalendar from './LunarCalendar';
 
 function App() {
   return (
     <div className="App">
-      <LunarCalendar />
+      <LunisolarHijriCalendar />
     </div>
   );
 }
