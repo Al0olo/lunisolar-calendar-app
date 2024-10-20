@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, momentLocalizer } from 'react-big-calendar';
-import moment from 'moment';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
 import Papa from 'papaparse';
-import 'react-big-calendar/lib/css/react-big-calendar.css';
-
-const localizer = momentLocalizer(moment);
+import moment from 'moment';
 
 const LunisolarHijriCalendar = () => {
   const [events, setEvents] = useState([]);
-  const [startDate, setStartDate] = useState(new Date());
+  const [startDate, setStartDate] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const phaseColors = {
-    'New Moon': 'rgb(0 231 255)',
+    'New Moon': 'rgb(0, 231, 255)',
     'First Quarter': '#66CCFF',
     'Full Moon': '#FFFF00',
     'Last Quarter': '#FF9933'
@@ -29,11 +29,9 @@ const LunisolarHijriCalendar = () => {
         Papa.parse(csvText, {
           header: true,
           complete: (results) => {
-            const lunisolarEvents = processLunisolarData(results.data);
+            const { lunisolarEvents, earliestDate } = processLunisolarData(results.data);
             setEvents(lunisolarEvents);
-            if (lunisolarEvents.length > 0) {
-              setStartDate(lunisolarEvents[0].start);
-            }
+            setStartDate(earliestDate);
             setIsLoading(false);
           },
           error: (error) => {
@@ -63,11 +61,16 @@ const LunisolarHijriCalendar = () => {
     const events = [];
     let lastFullMoon = null;
     let accumulatedDrift = 0;
+    let earliestDate = null;
 
     data.forEach((row, index) => {
       const gregorianDate = moment(row.datetime, 'YYYY-MM-DD HH:mm:ss');
       
-      // Calculate Hijri date for all phases
+      // Set earliest date
+      if (!earliestDate || gregorianDate.isBefore(earliestDate)) {
+        earliestDate = gregorianDate.toDate();
+      }
+
       if (lastFullMoon) {
         const daysSinceLastFullMoon = gregorianDate.diff(lastFullMoon, 'days');
         hijriDay += daysSinceLastFullMoon;
@@ -100,35 +103,34 @@ const LunisolarHijriCalendar = () => {
         }
       }
 
-      // Create event for all phases
       events.push({
         title: `${row.phase} - Hijri: ${hijriYear}-${hijriMonth}-${hijriDay}`,
         start: gregorianDate.toDate(),
-        end: gregorianDate.clone().add(1, 'day').toDate(),
         allDay: true,
-        hijriDate: `${hijriYear}-${hijriMonth}-${hijriDay}`,
-        gregorianDate: gregorianDate.format('YYYY-MM-DD'),
-        phase: row.phase
+        extendedProps: {
+          hijriDate: `${hijriYear}-${hijriMonth}-${hijriDay}`,
+          gregorianDate: gregorianDate.format('YYYY-MM-DD'),
+          phase: row.phase
+        },
+        backgroundColor: phaseColors[row.phase] || 'gray',
+        textColor: row.phase === 'Full Moon' || row.phase === 'New Moon' ? 'black' : 'white',
       });
     });
 
-    return events;
+    return { lunisolarEvents: events, earliestDate };
   };
 
-  const EventComponent = ({ event }) => (
-    <div style={{ 
-      backgroundColor: phaseColors[event.phase] || 'gray',
-      color: event.phase === 'Full Moon' || event.phase === 'New Moon' ? 'black' : 'white',
-      padding: '2px',
-      borderRadius: '4px'
-    }}>
-      <strong>{event.phase}</strong>
-      <br />
-      Hijri: {event.hijriDate}
-      <br />
-      Gregorian: {event.gregorianDate}
-    </div>
-  );
+  const renderEventContent = (eventInfo) => {
+    return (
+      <>
+        <b>{eventInfo.event.extendedProps.phase}</b>
+        <br />
+        Hijri: {eventInfo.event.extendedProps.hijriDate}
+        <br />
+        Gregorian: {eventInfo.event.extendedProps.gregorianDate}
+      </>
+    )
+  }
 
   if (isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
@@ -137,19 +139,18 @@ const LunisolarHijriCalendar = () => {
   return (
     <div className="h-screen p-4">
       <h1 className="text-2xl font-bold mb-4">Lunisolar Hijri Calendar</h1>
-      <Calendar
-        localizer={localizer}
-        events={events}
-        startAccessor="start"
-        endAccessor="end"
-        style={{ height: 'calc(100% - 60px)' }}
-        components={{
-          event: EventComponent
+      <FullCalendar
+        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+        initialView="dayGridMonth"
+        initialDate={startDate}
+        headerToolbar={{
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,dayGridWeek,dayGridDay'
         }}
-        date={startDate}
-        onNavigate={(date) => setStartDate(date)}
-        defaultView="week"
-        views={['month', 'week', 'day','agenda']}
+        events={events}
+        eventContent={renderEventContent}
+        height="auto"
       />
     </div>
   );
