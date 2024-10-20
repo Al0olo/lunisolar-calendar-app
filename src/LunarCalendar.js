@@ -148,6 +148,8 @@ const LunisolarHijriCalendar = () => {
         }}
         date={startDate}
         onNavigate={(date) => setStartDate(date)}
+        defaultView="week"
+        views={['month', 'week', 'day','agenda']}
       />
     </div>
   );
