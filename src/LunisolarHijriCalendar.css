@@ -4,77 +4,32 @@
     padding: 20px;
   }
   
-  h1 {
-    text-align: center;
-    margin-bottom: 20px;
-    font-size: 24px;
-    color: #333;
-  }
-  
-  .calendar-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-  }
-  
-  .year-navigation button,
-  .view-buttons button {
-    background-color: #f0f0f0;
-    border: 1px solid #ddd;
-    padding: 10px 20px;
-    margin: 0 5px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-  }
-  
-  .view-buttons button.active {
-    background-color: #007bff;
-    color: white;
-  }
-  
-  .year-navigation button:hover,
-  .view-buttons button:hover {
-    background-color: #e0e0e0;
-  }
-  
-  .fc-header-toolbar {
-    margin-bottom: 1.5em !important;
-  }
-  
-  .fc-toolbar-title {
-    font-size: 1.5em !important;
-  }
-  
   .event-content {
     font-size: 0.8em;
     line-height: 1.2;
+    padding: 2px;
+    border-radius: 3px;
   }
   
-  .loading, .error, .no-events {
-    text-align: center;
-    margin-top: 50px;
-    font-size: 18px;
-  }
-  
-  .error {
-    color: red;
+  .event-hijri, .event-gregorian {
+    font-size: 0.9em;
   }
   
   @media (max-width: 768px) {
-    .calendar-controls {
-      flex-direction: column;
-      align-items: stretch;
+    .calendar-container {
+      padding: 10px;
     }
   
-    .year-navigation, .view-buttons {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 10px;
+    .event-content {
+      font-size: 0.7em;
     }
   
-    .year-navigation button,
-    .view-buttons button {
-      flex: 1;
+    .event-hijri, .event-gregorian {
+      display: none;
     }
+  }
+  
+  /* You can add more specific styles for eclipse events if needed */
+  .fc-event-title {
+    font-weight: bold;
   }

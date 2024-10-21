@@ -7,7 +7,6 @@ import Papa from 'papaparse';
 import moment from 'moment';
 import './LunisolarHijriCalendar.css';
 
-
 const LunisolarHijriCalendar = () => {
   const [events, setEvents] = useState([]);
   const [startDate, setStartDate] = useState(null);
@@ -19,6 +18,13 @@ const LunisolarHijriCalendar = () => {
     'First Quarter': '#66CCFF',
     'Full Moon': '#FFFF00',
     'Last Quarter': '#FF9933'
+  };
+
+  const eclipseColors = {
+    'Total Solar': '#FF0000',
+    'Partial (Umbral) Lunar': '#800080',
+    'Annular Solar': '#FFA500',
+    'Penumbral Lunar': '#008000'
   };
 
   const hijriMonths = [
@@ -116,6 +122,7 @@ const LunisolarHijriCalendar = () => {
         ? `${hijriYear} ${hijriMonths[hijriMonth - 1]} ${hijriDay}` 
         : 'Pre-Hijri';
 
+      // Add moon phase event
       events.push({
         title: `${row.phase}${hijriYear !== null ? ` - Hijri: ${hijriDateString}` : ''}`,
         start: gregorianDate.toDate(),
@@ -123,29 +130,44 @@ const LunisolarHijriCalendar = () => {
         extendedProps: {
           hijriDate: hijriDateString,
           gregorianDate: gregorianDate.format('YYYY-MM-DD'),
-          phase: row.phase
+          phase: row.phase,
+          type: 'moonPhase'
         },
         backgroundColor: phaseColors[row.phase] || 'gray',
         textColor: row.phase === 'Full Moon' || row.phase === 'New Moon' ? 'black' : 'white',
       });
+
+      // Add eclipse event if present
+      if (row.eclipse) {
+        events.push({
+          title: `Eclipse: ${row.eclipse}`,
+          start: gregorianDate.toDate(),
+          allDay: true,
+          extendedProps: {
+            hijriDate: hijriDateString,
+            gregorianDate: gregorianDate.format('YYYY-MM-DD'),
+            eclipseType: row.eclipse,
+            type: 'eclipse'
+          },
+          backgroundColor: eclipseColors[row.eclipse] || 'purple',
+          textColor: 'white',
+        });
+      }
     });
 
     return { lunisolarEvents: events, earliestDate };
   };
 
   const renderEventContent = (eventInfo) => {
+    const { extendedProps } = eventInfo.event;
     return (
-      <>
-        <b>{eventInfo.event.extendedProps.phase}</b>
-        <br />
-        {eventInfo.event.extendedProps.hijriDate !== 'Pre-Hijri' && (
-          <>
-            Hijri: {eventInfo.event.extendedProps.hijriDate}
-            <br />
-          </>
+      <div className="event-content">
+        <b>{extendedProps.type === 'moonPhase' ? extendedProps.phase : `Eclipse: ${extendedProps.eclipseType}`}</b>
+        {extendedProps.hijriDate !== 'Pre-Hijri' && (
+          <div className="event-hijri">Hijri: {extendedProps.hijriDate}</div>
         )}
-        Gregorian: {eventInfo.event.extendedProps.gregorianDate}
-      </>
+        <div className="event-gregorian">Gregorian: {extendedProps.gregorianDate}</div>
+      </div>
     )
   }
 
