@@ -5,6 +5,8 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import Papa from 'papaparse';
 import moment from 'moment';
+import './LunisolarHijriCalendar.css';
+
 
 const LunisolarHijriCalendar = () => {
   const [events, setEvents] = useState([]);
@@ -152,7 +154,7 @@ const LunisolarHijriCalendar = () => {
   if (events.length === 0) return <div>No events found. Please check your CSV file.</div>;
 
   return (
-    <div className="h-screen p-4">
+    <div className="h-screen p-4 calendar-container">
       <h1 className="text-2xl font-bold mb-4">Lunisolar Hijri Calendar</h1>
       <FullCalendar
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}

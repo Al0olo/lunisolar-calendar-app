@@ -1,0 +1,80 @@
+.calendar-container {
+    max-width: 95%;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 24px;
+    color: #333;
+  }
+  
+  .calendar-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  
+  .year-navigation button,
+  .view-buttons button {
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    padding: 10px 20px;
+    margin: 0 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  
+  .view-buttons button.active {
+    background-color: #007bff;
+    color: white;
+  }
+  
+  .year-navigation button:hover,
+  .view-buttons button:hover {
+    background-color: #e0e0e0;
+  }
+  
+  .fc-header-toolbar {
+    margin-bottom: 1.5em !important;
+  }
+  
+  .fc-toolbar-title {
+    font-size: 1.5em !important;
+  }
+  
+  .event-content {
+    font-size: 0.8em;
+    line-height: 1.2;
+  }
+  
+  .loading, .error, .no-events {
+    text-align: center;
+    margin-top: 50px;
+    font-size: 18px;
+  }
+  
+  .error {
+    color: red;
+  }
+  
+  @media (max-width: 768px) {
+    .calendar-controls {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  
+    .year-navigation, .view-buttons {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+  
+    .year-navigation button,
+    .view-buttons button {
+      flex: 1;
+    }
+  }
