@@ -31,7 +31,7 @@ const LunisolarHijriCalendar = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('/moon-phases-601-to-2100-UT.csv');
+        const response = await fetch('/moon-phases-601-to-4000-with-eclipses-UT.csv');
         const csvText = await response.text();
         
         Papa.parse(csvText, {
